@@ -65,6 +65,7 @@
     ctrl.totalGigabytesUsed = 0;
     ctrl.maxTotalVolumes = 1;
     ctrl.totalVolumesUsed = 0;
+    ctrl.volumeTypeQuotas = [];
 
     var numberOfVolumesToAdd = 1;
 
@@ -128,11 +129,60 @@
       ]
     };
 
+    ctrl.volumeTypeCapacityQuota = {
+      title: gettext('Volume Type Quota (GB)'),
+      maxLimit: 10,
+      label: getPercentUsed(ctrl.volume.size, 0),
+      data: [
+        {
+          label: quotaChartDefaults.usageLabel,
+          value: 0,
+          colorClass: quotaChartDefaults.usageColorClass
+        },
+        {
+          label: quotaChartDefaults.addedLabel,
+          value: ctrl.volume.size,
+          colorClass: quotaChartDefaults.addedColorClass
+        },
+        {
+          label: quotaChartDefaults.remainingLabel,
+          value: 0,
+          colorClass: quotaChartDefaults.remainingColorClass
+        }
+      ]
+    };
+
+    ctrl.volumeTypeAmountQuota = {
+      title: gettext('Volume Type Quota'),
+      maxLimit: 0,
+      label: getPercentUsed(0, 0),
+      data: [
+        {
+          label: quotaChartDefaults.usageLabel,
+          value: 0,
+          colorClass: quotaChartDefaults.usageColorClass
+        },
+        {
+          label: quotaChartDefaults.addedLabel,
+          value: numberOfVolumesToAdd,
+          colorClass: quotaChartDefaults.addedColorClass
+        },
+        {
+          label: quotaChartDefaults.remainingLabel,
+          value: 0,
+          colorClass: quotaChartDefaults.remainingColorClass
+        }
+      ]
+    };
+
     var capacityWatcher = $scope.$watch(
       function() {
         return ctrl.volume.size;
       },
-      updateStorageGraph
+      function() {
+        updateVolumeTypeCapacityGraph();
+        updateStorageGraph();
+      }
     );
 
     var volumeTypeWatcher = $scope.$watch(
@@ -142,6 +192,21 @@
       updateVolumeType,
       true
     );
+
+    // var volumeTypeWatcher = $scope.$watch(
+    //   function() {
+    //     return ctrl.volume.volume_type;
+    //   },
+    //   function() {
+    //     updateVolumeTypeCapacityGraph();
+    //     updateVolumeTypeAmountGraph();
+    //   }
+    // );
+
+    $scope.volumeTypeWatcher = function(item) {
+      updateVolumeTypeCapacityGraph();
+      updateVolumeTypeAmountGraph();
+    };
 
     $scope.$on('$destroy', deregisterWatchers);
 
@@ -185,6 +250,17 @@
       ctrl.totalVolumesUsed = response.totalVolumesUsed;
       ctrl.maxTotalVolumes = response.maxTotalVolumes;
       updateInstanceGraph();
+
+      ctrl.volumeTypes.forEach( function (e) {
+        ctrl.volumeTypeQuotas[e.name] = {};
+        ctrl.volumeTypeQuotas[e.name].used_gigabytes = response["used_gigabytes_"+e.name];
+        ctrl.volumeTypeQuotas[e.name].total_gigabytes = response["total_gigabytes_"+e.name];
+        ctrl.volumeTypeQuotas[e.name].used_volumes = response["used_volumes_"+e.name];
+        ctrl.volumeTypeQuotas[e.name].total_volumes = response["total_volumes_"+e.name];
+      } );
+
+      updateVolumeTypeCapacityGraph();
+      updateVolumeTypeAmountGraph();
     }
 
     function updateStorageGraph() {
@@ -214,8 +290,49 @@
       ctrl.volumeQuota = angular.extend({}, ctrl.volumeQuota);
     }
 
+    function updateVolumeTypeCapacityGraph() {
+      var type = ctrl.volumeType.name;
+      if (type === undefined || ctrl.volumeTypeQuotas[type] === undefined) {}
+      else {
+        ctrl.volumeTypeAmountQuota.maxLimit = ctrl.volumeTypeQuotas[type].total_gigabytes;
+        if (ctrl.volume.size >= 0) {
+          var totalGigabytesAllocated = ctrl.volume.size + ctrl.volumeTypeQuotas[type].used_gigabytes;
+          ctrl.volumeTypeCapacityQuota.data[0].value = ctrl.volumeTypeQuotas[type].used_gigabytes;
+          ctrl.volumeTypeCapacityQuota.data[1].value = ctrl.volume.size;
+          ctrl.volumeTypeCapacityQuota.data[2].value =
+            Math.max(ctrl.volumeTypeQuotas[type].total_gigabytes - totalGigabytesAllocated, 0);
+          ctrl.volumeTypeCapacityQuota.label =
+            getPercentUsed(totalGigabytesAllocated, ctrl.volumeTypeQuotas[type].total_gigabytes);
+          ctrl.volumeTypeCapacityQuota.maxLimit = ctrl.volumeTypeQuotas[type].total_gigabytes;
+          ctrl.volumeTypeCapacityQuota.overMax = totalGigabytesAllocated > ctrl.volumeTypeCapacityQuota.maxLimit;
+          ctrl.volumeTypeCapacityQuota = angular.extend({}, ctrl.volumeTypeCapacityQuota);
+          $scope.volumeForm.$setValidity('volumeSize', !ctrl.volumeTypeCapacityQuota.overMax);
+        }
+      }
+    }
+
+    function updateVolumeTypeAmountGraph() {
+      var type = ctrl.volumeType.name;
+      if (type === undefined || ctrl.volumeTypeQuotas[type] === undefined) {}
+      else {
+        ctrl.volumeTypeAmountQuota.data[0].value = ctrl.volumeTypeQuotas[type].used_volumes;
+        ctrl.volumeTypeAmountQuota.data[2].value =
+          Math.max(ctrl.volumeTypeQuotas[type].total_volumes - ctrl.volumeTypeQuotas[type].used_volumes - numberOfVolumesToAdd, 0);
+        ctrl.volumeTypeAmountQuota.label = getPercentUsed(ctrl.volumeTypeQuotas[type].used_volumes + numberOfVolumesToAdd,
+          ctrl.volumeTypeQuotas[type].total_volumes);
+        ctrl.volumeTypeAmountQuota.maxLimit = ctrl.volumeTypeQuotas[type].total_volumes;
+        ctrl.volumeTypeAmountQuota.overMax = ctrl.volumeTypeQuotas[type].used_volumes === ctrl.volumeTypeAmountQuota.maxLimit;
+        ctrl.volumeTypeAmountQuota = angular.extend({}, ctrl.volumeTypeAmountQuota);
+      }
+    }
+
     function getPercentUsed(used, total) {
-      return Math.round(used / total * 100) + '%';
+      if (total > 0 && used <= total) {
+        return Math.round(used / total * 100) + '%';
+      }
+      else {
+        return '100%';
+      }
     }
 
     function getSourceImage(image) {

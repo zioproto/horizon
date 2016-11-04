@@ -67,6 +67,9 @@ horizon.Quota = {
   user_value_form_inputs: [], // The actual form inputs that trigger progress changes.
   selected_flavor: null, // The flavor object of the current selected flavor on the form.
   flavors: [], // The flavor objects the form represents, passed to us in initWithFlavors.
+  selected_type: null, // The volume type object of the current selected type on the form.
+  types: [], //The volume types, passed to us in initWithTypes.
+
 
   /*
    Determines the progress bars and form elements to be used for quota
@@ -226,6 +229,13 @@ horizon.Quota = {
     this.updateFlavorUsage();
   },
 
+  initWithTypes: function(types) {
+    this.types = types;
+    this.init();
+    this.showTypeDetails(this);
+  },
+
+
   // Returns the flavor object for the selected flavor in the form.
   // also find out if there is old_flavor
   getSelectedFlavor: function() {
@@ -379,16 +389,39 @@ horizon.Quota = {
     });
   },
 
+  getSelectedType: function() {
+    this.selected_type = $.grep(this.types, function(type) {
+        return type.name === $("#id_type option:selected").val();
+      })[0];
+    return this.selected_type;
+  },
+
+  showTypeDetails: function(scope) {
+    scope.getSelectedType();
+
+    if (scope.selected_type) {
+      $("div[id^='type_']").hide();
+      $("div[id^='type_"+scope.selected_type.name+"']").show();
+    }
+  },
+
+
   // Does the math to calculate what percentage to update a progress bar by.
   updateUsageFor: function(progress_element, increment_by) {
-    var $progress_element = $(progress_element);
-
-    //var update_indicator = progress_element.find('.progress_bar_selected');
-    var quota_limit = parseInt($progress_element.attr('data-quota-limit'), 10);
-    var percentage_to_update = ((increment_by / quota_limit) * 100);
-
-    this.update($progress_element.attr('id'), percentage_to_update);
+    if (!progress_element instanceof Array) {
+      progress_element = Array(progress_element);
+    }
+    for (index = 0; index < progress_element.length; index++) {
+      var element = $(progress_element[index])
+      var update_indicator = element.find('.progress_bar_selected');
+      var quota_limit = parseInt(element.attr('data-quota-limit'), 10);
+      var quota_used = parseInt(element.attr('data-quota-used'), 10);
+      var percentage_to_update = ((increment_by / quota_limit) * 100);
+      var percentage_used = ((quota_used / quota_limit) * 100);
+      this.update($(element).attr('id'), percentage_to_update);
+    }
   },
+
 
   // Update the progress Bar
   update: function(element, value) {
@@ -494,5 +527,10 @@ horizon.Quota = {
         scope.updateUsageFor($progress_element, progress_amount);
       });
     });
+
+    $('#id_type').on('change', function(e) {
+      scope.showTypeDetails(scope);
+    });
+
   }
 };

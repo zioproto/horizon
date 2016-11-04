@@ -24,6 +24,26 @@
   {% bs_progress_bar gigabytes_percent 0 %}
 </div>
 
+{% with used_gigabytes="used_gigabytes_"|add:type total_gigabytes="total_gigabytes_"|add:type %}
+  <div class="quota_title">
+    <div class="pull-left">
+      <strong>{% trans "Total Gibibytes for " %} {{ type }}</strong>
+      <span>({{ usages|get_item:used_gigabytes|intcomma }} {% trans "GiB" %})</span>
+    </div>
+    <span class="pull-right">{{ usages|get_item:total_gigabytes|quota:_("GiB")|intcomma }}</span>
+  </div>
+
+  <div id="quota_size"
+       data-progress-indicator-for="id_new_size"
+       data-quota-limit="{{ usages|get_item:total_gigabytes }}"
+       data-quota-used="{{ usages|get_item:used_gigabytes }}"
+       class="quota_bar">
+    {% widthratio usages|get_item:used_gigabytes usages|get_item:total_gigabytes 100 as gigabytes_percent %}
+    {% bs_progress_bar gigabytes_percent 0 %}
+  </div>
+{% endwith %}
+
+
 <script type="text/javascript" charset="utf-8">
   if(typeof horizon.Quota !== 'undefined') {
     horizon.Quota.init();

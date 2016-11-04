@@ -29,6 +29,11 @@ def replace_underscores(string):
 
 
 @register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)
+
+
+@register.filter
 def parse_isotime(timestr, default=None):
     # This duplicates oslo timeutils parse_isotime but with a
     # @register.filter annotation and a silent fallback on error.

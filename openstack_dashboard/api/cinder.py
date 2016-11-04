@@ -986,6 +986,16 @@ def tenant_absolute_limits(request, tenant_id=None):
                 limits_dict[limit.name] = float("inf")
         else:
             limits_dict[limit.name] = limit.value
+    quotaset = cinderclient(request).quotas.get(request.user.tenant_id,True)
+    quotas = [k for k in dir(quotaset) if k.startswith('gigabytes_') or k.startswith('volumes_')]
+    for quota in quotas:
+        d = getattr(quotaset, quota)
+        if d['limit'] < 0:
+            r = quota.split('_')[0]
+            limits_dict["total_"+quota] = getattr(quotaset,r)['limit']
+        else:
+            limits_dict["total_"+quota] = d['limit']
+        limits_dict["used_"+quota] = d['in_use']
     return limits_dict
 
 
