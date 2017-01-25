@@ -159,6 +159,7 @@
           settings = {
             LAUNCH_INSTANCE_DEFAULTS: {
               config_drive: false,
+              disable_volume_creation: false,
               disable_image: false,
               disable_instance_snapshot: false,
               disable_volume: false,
@@ -458,6 +459,14 @@
           expect(model.allowCreateVolumeFromImage).toBe(false);
         });
 
+        it('should disable create volume if disable_volume_creation is true', function() {
+          settings.LAUNCH_INSTANCE_DEFAULTS.disable_volume_creation = true;
+          model.initialize(true);
+          scope.$apply();
+
+          expect(model.allowCreateVolumeFromImage).toBe(false);
+        });
+
         it('should default config_drive to false', function() {
           model.initialize(true);
           scope.$apply();
@@ -579,6 +588,7 @@
         });
 
         it('should have proper allowedBootSources if specific settings missing', function() {
+          delete settings.LAUNCH_INSTANCE_DEFAULTS.disable_volume_creation;
           delete settings.LAUNCH_INSTANCE_DEFAULTS.disable_image;
           delete settings.LAUNCH_INSTANCE_DEFAULTS.disable_instance_snapshot;
           delete settings.LAUNCH_INSTANCE_DEFAULTS.disable_volume;

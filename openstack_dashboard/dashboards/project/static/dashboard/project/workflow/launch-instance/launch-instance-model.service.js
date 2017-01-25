@@ -535,9 +535,11 @@
         .then(onVolumeServiceEnabled, resolvePromises);
       function onVolumeServiceEnabled() {
         model.volumeBootable = true;
-        novaExtensions
-          .ifNameEnabled('BlockDeviceMappingV2Boot')
-          .then(onBootToVolumeSupported);
+        if (!config || !config.disable_volume_creation) {
+          novaExtensions
+            .ifNameEnabled('BlockDeviceMappingV2Boot')
+            .then(onBootToVolumeSupported);
+        }
         if (!config || !config.disable_volume) {
           getVolumes().then(resolveVolumes, failVolumes);
         } else {

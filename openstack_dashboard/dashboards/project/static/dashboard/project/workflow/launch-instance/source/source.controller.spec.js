@@ -259,6 +259,7 @@
 
           it('updates the scope appropriately, with Cinder available', function() {
             scope.model.volumeBootable = true;
+            scope.model.allowCreateVolumeFromImage = true;
             var selSource = 'image';
             ctrl.updateBootSourceSelection(selSource);
 

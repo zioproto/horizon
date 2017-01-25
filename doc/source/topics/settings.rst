@@ -652,7 +652,8 @@ Default::
 
     {
         "config_drive": False,
-        "enable_scheduler_hints": True
+        "enable_scheduler_hints": True,
+        "disable_volume_creation": False,
         "disable_image": False,
         "disable_instance_snapshot": False,
         "disable_volume": False,
@@ -667,6 +668,9 @@ Drive property.
 
 The ``enable_scheduler_hints`` setting specifies whether or not Scheduler Hints
 can be provided when launching an instance.
+
+The ``disable_volume_creation`` setting allows you to disable the option of
+creating a volume in the workflow for image and instance snapshot sources.
 
 The ``disable_image`` setting disables Images as a valid boot source for launching
 instances. Image sources won't show up in the Launch Instance modal.
